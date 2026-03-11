@@ -13,30 +13,26 @@ class PostBloc extends Bloc<PostEvent, PostState> {
     on<RefreshPosts>(_onRefreshPosts);
   }
 
-  Future<void> _onLoadPosts(
-    LoadPosts event,
-    Emitter<PostState> emit,
-  ) async {
+  Future<void> _onLoadPosts(LoadPosts event, Emitter<PostState> emit) async {
     emit(PostLoading());
 
     final result = await getPostsUseCase(
       const GetPostsParams(limit: _pageSize, skip: 0),
     );
 
-    result.fold(
-      (failure) => emit(const PostError('Failed to load posts')),
-      (response) {
-        if (response.posts.isEmpty) {
-          emit(PostEmpty());
-        } else {
-          emit(PostLoaded(
+    result.fold((failure) => emit(PostError(failure.message)), (response) {
+      if (response.posts.isEmpty) {
+        emit(PostEmpty());
+      } else {
+        emit(
+          PostLoaded(
             posts: response.posts,
             hasReachedMax: response.posts.length >= response.total,
             currentSkip: _pageSize,
-          ));
-        }
-      },
-    );
+          ),
+        );
+      }
+    });
   }
 
   Future<void> _onLoadMorePosts(
@@ -45,29 +41,39 @@ class PostBloc extends Bloc<PostEvent, PostState> {
   ) async {
     final currentState = state;
     if (currentState is PostLoaded && !currentState.hasReachedMax) {
-      emit(PostLoadingMore(
-        posts: currentState.posts,
-        currentSkip: currentState.currentSkip,
-      ));
+      emit(
+        PostLoadingMore(
+          posts: currentState.posts,
+          currentSkip: currentState.currentSkip,
+        ),
+      );
 
       final result = await getPostsUseCase(
         GetPostsParams(limit: _pageSize, skip: currentState.currentSkip),
       );
 
       result.fold(
-        (failure) => emit(PostLoaded(
-          posts: currentState.posts,
-          hasReachedMax: currentState.hasReachedMax,
-          currentSkip: currentState.currentSkip,
-        )),
+        (failure) {
+          // On pagination failure, show error state but keep existing posts
+          emit(
+            PostPaginationError(
+              posts: currentState.posts,
+              hasReachedMax: currentState.hasReachedMax,
+              currentSkip: currentState.currentSkip,
+              errorMessage: failure.message,
+            ),
+          );
+        },
         (response) {
           final allPosts = List.of(currentState.posts)..addAll(response.posts);
 
-          emit(PostLoaded(
-            posts: allPosts,
-            hasReachedMax: allPosts.length >= response.total,
-            currentSkip: currentState.currentSkip + _pageSize,
-          ));
+          emit(
+            PostLoaded(
+              posts: allPosts,
+              hasReachedMax: allPosts.length >= response.total,
+              currentSkip: currentState.currentSkip + _pageSize,
+            ),
+          );
         },
       );
     }
@@ -83,19 +89,18 @@ class PostBloc extends Bloc<PostEvent, PostState> {
       const GetPostsParams(limit: _pageSize, skip: 0),
     );
 
-    result.fold(
-      (failure) => emit(const PostError('Failed to refresh posts')),
-      (response) {
-        if (response.posts.isEmpty) {
-          emit(PostEmpty());
-        } else {
-          emit(PostLoaded(
+    result.fold((failure) => emit(PostError(failure.message)), (response) {
+      if (response.posts.isEmpty) {
+        emit(PostEmpty());
+      } else {
+        emit(
+          PostLoaded(
             posts: response.posts,
             hasReachedMax: response.posts.length >= response.total,
             currentSkip: _pageSize,
-          ));
-        }
-      },
-    );
+          ),
+        );
+      }
+    });
   }
 }

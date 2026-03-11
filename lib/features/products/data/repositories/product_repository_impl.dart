@@ -28,13 +28,23 @@ class ProductRepositoryImpl implements ProductRepository {
           skip: skip,
         );
         return Right(response);
+      } on TimeoutException catch (e) {
+        return Left(TimeoutFailure(e.message));
+      } on EmptyDataException catch (e) {
+        return Left(EmptyDataFailure(e.message));
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       } on NetworkException catch (e) {
         return Left(NetworkFailure(e.message));
+      } catch (e) {
+        return Left(ServerFailure('Unexpected error: $e'));
       }
     } else {
-      return Left(NetworkFailure('No internet connection'));
+      return Left(
+        NetworkFailure(
+          'No internet connection. Please check your network settings.',
+        ),
+      );
     }
   }
 
@@ -44,13 +54,23 @@ class ProductRepositoryImpl implements ProductRepository {
       try {
         final product = await remoteDataSource.getProduct(id);
         return Right(product);
+      } on TimeoutException catch (e) {
+        return Left(TimeoutFailure(e.message));
+      } on EmptyDataException catch (e) {
+        return Left(EmptyDataFailure(e.message));
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));
       } on NetworkException catch (e) {
         return Left(NetworkFailure(e.message));
+      } catch (e) {
+        return Left(ServerFailure('Unexpected error: $e'));
       }
     } else {
-      return Left(NetworkFailure('No internet connection'));
+      return Left(
+        NetworkFailure(
+          'No internet connection. Please check your network settings.',
+        ),
+      );
     }
   }
 }

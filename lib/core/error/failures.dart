@@ -29,3 +29,18 @@ class CacheFailure extends Failure {
 class ValidationFailure extends Failure {
   const ValidationFailure(super.message);
 }
+
+/// Failure for timeout errors
+class TimeoutFailure extends Failure {
+  const TimeoutFailure(super.message);
+}
+
+/// Failure for empty response/data
+class EmptyDataFailure extends Failure {
+  const EmptyDataFailure(super.message);
+}
+
+/// Failure for pagination errors
+class PaginationFailure extends Failure {
+  const PaginationFailure(super.message);
+}

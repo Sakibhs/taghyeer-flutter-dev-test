@@ -19,7 +19,9 @@ class PostModel extends Post {
       tags: json['tags'] != null
           ? List<String>.from(json['tags'] as List)
           : null,
-      reactions: json['reactions'] as int?,
+      reactions: json['reactions'] != null
+          ? Map<String, dynamic>.from(json['reactions'] as Map)
+          : null,
     );
   }
 

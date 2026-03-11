@@ -25,3 +25,24 @@ class ValidationException implements Exception {
 
   ValidationException(this.message);
 }
+
+/// Exception for timeout errors
+class TimeoutException implements Exception {
+  final String message;
+
+  TimeoutException(this.message);
+}
+
+/// Exception for empty response/data
+class EmptyDataException implements Exception {
+  final String message;
+
+  EmptyDataException(this.message);
+}
+
+/// Exception for pagination errors
+class PaginationException implements Exception {
+  final String message;
+
+  PaginationException(this.message);
+}

@@ -6,7 +6,7 @@ class Post extends Equatable {
   final String body;
   final int userId;
   final List<String>? tags;
-  final int? reactions;
+  final Map<String, dynamic>? reactions;
 
   const Post({
     required this.id,
@@ -16,6 +16,15 @@ class Post extends Equatable {
     this.tags,
     this.reactions,
   });
+
+  int get totalReactions {
+    if (reactions == null) return 0;
+    int total = 0;
+    reactions!.forEach((key, value) {
+      if (value is int) total += value;
+    });
+    return total;
+  }
 
   @override
   List<Object?> get props => [id, title, body, userId, tags, reactions];

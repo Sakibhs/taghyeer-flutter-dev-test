@@ -29,7 +29,11 @@ class AuthRepositoryImpl implements AuthRepository {
     // Check network connectivity
     final isConnected = await networkInfo.isConnected;
     if (!isConnected) {
-      return const Left(NetworkFailure('No internet connection'));
+      return const Left(
+        NetworkFailure(
+          'No internet connection. Please check your network settings.',
+        ),
+      );
     }
 
     try {
@@ -40,11 +44,15 @@ class AuthRepositoryImpl implements AuthRepository {
       );
 
       final user = await remoteDataSource.login(request);
-      
+
       // Cache user data locally
       await localDataSource.cacheUser(user);
-      
+
       return Right(user);
+    } on TimeoutException catch (e) {
+      return Left(TimeoutFailure(e.message));
+    } on EmptyDataException catch (e) {
+      return Left(EmptyDataFailure(e.message));
     } on ServerException catch (e) {
       return Left(ServerFailure(e.message));
     } on NetworkException catch (e) {

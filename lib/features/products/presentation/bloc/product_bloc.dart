@@ -23,20 +23,19 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       const GetProductsParams(limit: _pageSize, skip: 0),
     );
 
-    result.fold(
-      (failure) => emit(const ProductError('Failed to load products')),
-      (response) {
-        if (response.products.isEmpty) {
-          emit(ProductEmpty());
-        } else {
-          emit(ProductLoaded(
+    result.fold((failure) => emit(ProductError(failure.message)), (response) {
+      if (response.products.isEmpty) {
+        emit(ProductEmpty());
+      } else {
+        emit(
+          ProductLoaded(
             products: response.products,
             hasReachedMax: response.products.length >= response.total,
             currentSkip: _pageSize,
-          ));
-        }
-      },
-    );
+          ),
+        );
+      }
+    });
   }
 
   Future<void> _onLoadMoreProducts(
@@ -45,30 +44,40 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   ) async {
     final currentState = state;
     if (currentState is ProductLoaded && !currentState.hasReachedMax) {
-      emit(ProductLoadingMore(
-        products: currentState.products,
-        currentSkip: currentState.currentSkip,
-      ));
+      emit(
+        ProductLoadingMore(
+          products: currentState.products,
+          currentSkip: currentState.currentSkip,
+        ),
+      );
 
       final result = await getProductsUseCase(
         GetProductsParams(limit: _pageSize, skip: currentState.currentSkip),
       );
 
       result.fold(
-        (failure) => emit(ProductLoaded(
-          products: currentState.products,
-          hasReachedMax: currentState.hasReachedMax,
-          currentSkip: currentState.currentSkip,
-        )),
+        (failure) {
+          // On pagination failure, show error state but keep existing products
+          emit(
+            ProductPaginationError(
+              products: currentState.products,
+              hasReachedMax: currentState.hasReachedMax,
+              currentSkip: currentState.currentSkip,
+              errorMessage: failure.message,
+            ),
+          );
+        },
         (response) {
           final allProducts = List.of(currentState.products)
             ..addAll(response.products);
-          
-          emit(ProductLoaded(
-            products: allProducts,
-            hasReachedMax: allProducts.length >= response.total,
-            currentSkip: currentState.currentSkip + _pageSize,
-          ));
+
+          emit(
+            ProductLoaded(
+              products: allProducts,
+              hasReachedMax: allProducts.length >= response.total,
+              currentSkip: currentState.currentSkip + _pageSize,
+            ),
+          );
         },
       );
     }
@@ -90,11 +99,13 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
         if (response.products.isEmpty) {
           emit(ProductEmpty());
         } else {
-          emit(ProductLoaded(
-            products: response.products,
-            hasReachedMax: response.products.length >= response.total,
-            currentSkip: _pageSize,
-          ));
+          emit(
+            ProductLoaded(
+              products: response.products,
+              hasReachedMax: response.products.length >= response.total,
+              currentSkip: _pageSize,
+            ),
+          );
         }
       },
     );

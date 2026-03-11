@@ -59,7 +59,7 @@ Future<void> init() async {
   sl.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(sl()),
   );
-  
+
   sl.registerLazySingleton<AuthLocalDataSource>(
     () => AuthLocalDataSourceImpl(sl()),
   );
@@ -75,10 +75,7 @@ Future<void> init() async {
 
   // Repository
   sl.registerLazySingleton<ProductRepository>(
-    () => ProductRepositoryImpl(
-      remoteDataSource: sl(),
-      networkInfo: sl(),
-    ),
+    () => ProductRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
 
   // Data sources
@@ -97,10 +94,7 @@ Future<void> init() async {
 
   // Repository
   sl.registerLazySingleton<PostRepository>(
-    () => PostRepositoryImpl(
-      remoteDataSource: sl(),
-      networkInfo: sl(),
-    ),
+    () => PostRepositoryImpl(remoteDataSource: sl(), networkInfo: sl()),
   );
 
   // Data sources
@@ -113,14 +107,39 @@ Future<void> init() async {
   sl.registerFactory(() => ThemeBloc(sharedPreferences: sl()));
 
   //! Core
-  sl.registerLazySingleton<NetworkInfo>(
-    () => NetworkInfoImpl(sl()),
-  );
+  sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl()));
 
   //! External
-  sl.registerLazySingleton(() => Dio());
+  // Configure Dio with proper timeouts and interceptors
+  sl.registerLazySingleton(() {
+    final dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 30),
+        sendTimeout: const Duration(seconds: 15),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      ),
+    );
+
+    // Add logging interceptor in debug mode
+    dio.interceptors.add(
+      LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+        error: true,
+        requestHeader: true,
+        responseHeader: false,
+      ),
+    );
+
+    return dio;
+  });
+
   sl.registerLazySingleton(() => InternetConnectionChecker());
-  
+
   // SharedPreferences
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton(() => sharedPreferences);

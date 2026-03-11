@@ -62,7 +62,11 @@ class _PostsPageState extends State<PostsPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 60,
+                      color: Colors.red,
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       state.message,
@@ -88,109 +92,173 @@ class _PostsPageState extends State<PostsPage> {
                   children: [
                     Icon(Icons.inbox_outlined, size: 60, color: Colors.grey),
                     SizedBox(height: 16),
-                    Text(
-                      'No posts available',
-                      style: TextStyle(fontSize: 16),
-                    ),
+                    Text('No posts available', style: TextStyle(fontSize: 16)),
                   ],
                 ),
               );
             }
 
-            if (state is PostLoaded || state is PostLoadingMore) {
+            if (state is PostLoaded ||
+                state is PostLoadingMore ||
+                state is PostPaginationError) {
               final posts = state is PostLoaded
                   ? state.posts
-                  : (state as PostLoadingMore).posts;
-              final hasReachedMax =
-                  state is PostLoaded ? state.hasReachedMax : false;
+                  : state is PostLoadingMore
+                  ? state.posts
+                  : (state as PostPaginationError).posts;
+              final hasReachedMax = state is PostLoaded
+                  ? state.hasReachedMax
+                  : state is PostPaginationError
+                  ? state.hasReachedMax
+                  : false;
+              final paginationError = state is PostPaginationError
+                  ? state.errorMessage
+                  : null;
 
               return RefreshIndicator(
                 onRefresh: () async {
                   context.read<PostBloc>().add(const RefreshPosts());
                   await Future.delayed(const Duration(milliseconds: 500));
                 },
-                child: ListView.builder(
-                  controller: _scrollController,
-                  itemCount: hasReachedMax ? posts.length : posts.length + 1,
-                  padding: const EdgeInsets.all(8),
-                  itemBuilder: (context, index) {
-                    if (index >= posts.length) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: CircularProgressIndicator(),
+                child: Column(
+                  children: [
+                    // Show pagination error banner
+                    if (paginationError != null)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        color: Colors.red.shade100,
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline, color: Colors.red),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                paginationError,
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                context.read<PostBloc>().add(
+                                  const LoadMorePosts(),
+                                );
+                              },
+                              child: const Text('Retry'),
+                            ),
+                          ],
                         ),
-                      );
-                    }
+                      ),
+                    Expanded(
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        itemCount: hasReachedMax
+                            ? posts.length
+                            : posts.length + 1,
+                        padding: const EdgeInsets.all(8),
+                        itemBuilder: (context, index) {
+                          if (index >= posts.length) {
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
+                          }
 
-                    final post = posts[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PostDetailPage(postId: post.id),
+                          final post = posts[index];
+                          return Card(
+                            margin: const EdgeInsets.symmetric(
+                              vertical: 8,
+                              horizontal: 4,
+                            ),
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        PostDetailPage(postId: post.id),
+                                  ),
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      post.title,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      post.body,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[700],
+                                        height: 1.4,
+                                      ),
+                                      maxLines: 3,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      children: [
+                                        if (post.reactions != null &&
+                                            post.totalReactions > 0) ...[
+                                          Icon(
+                                            Icons.favorite,
+                                            size: 16,
+                                            color: Colors.red[400],
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${post.totalReactions}',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                        if (post.tags != null &&
+                                            post.tags!.isNotEmpty) ...[
+                                          const SizedBox(width: 12),
+                                          Icon(
+                                            Icons.local_offer,
+                                            size: 16,
+                                            color: Colors.grey[600],
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '${post.tags!.length}',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                        const Spacer(),
+                                        Icon(
+                                          Icons.chevron_right,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           );
                         },
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                post.title,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 12),
-                              Text(
-                                post.body,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[700],
-                                  height: 1.4,
-                                ),
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  if (post.reactions != null) ...[
-                                    Icon(
-                                      Icons.favorite,
-                                      size: 16,
-                                      color: Colors.grey[600],
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${post.reactions}',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                  const Spacer(),
-                                  Icon(
-                                    Icons.chevron_right,
-                                    color: Colors.grey[600],
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
               );
             }

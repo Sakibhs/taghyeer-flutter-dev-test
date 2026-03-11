@@ -63,7 +63,11 @@ class _ProductsPageState extends State<ProductsPage> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                    const Icon(
+                      Icons.error_outline,
+                      size: 60,
+                      color: Colors.red,
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       state.message,
@@ -73,7 +77,9 @@ class _ProductsPageState extends State<ProductsPage> {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () {
-                        context.read<ProductBloc>().add(const RefreshProducts());
+                        context.read<ProductBloc>().add(
+                          const RefreshProducts(),
+                        );
                       },
                       child: const Text('Retry'),
                     ),
@@ -98,94 +104,147 @@ class _ProductsPageState extends State<ProductsPage> {
               );
             }
 
-            if (state is ProductLoaded || state is ProductLoadingMore) {
+            if (state is ProductLoaded ||
+                state is ProductLoadingMore ||
+                state is ProductPaginationError) {
               final products = state is ProductLoaded
                   ? state.products
-                  : (state as ProductLoadingMore).products;
-              final hasReachedMax =
-                  state is ProductLoaded ? state.hasReachedMax : false;
+                  : state is ProductLoadingMore
+                  ? state.products
+                  : (state as ProductPaginationError).products;
+              final hasReachedMax = state is ProductLoaded
+                  ? state.hasReachedMax
+                  : state is ProductPaginationError
+                  ? state.hasReachedMax
+                  : false;
+              final paginationError = state is ProductPaginationError
+                  ? state.errorMessage
+                  : null;
 
               return RefreshIndicator(
                 onRefresh: () async {
                   context.read<ProductBloc>().add(const RefreshProducts());
                   await Future.delayed(const Duration(milliseconds: 500));
                 },
-                child: ListView.builder(
-                  controller: _scrollController,
-                  itemCount: hasReachedMax ? products.length : products.length + 1,
-                  padding: const EdgeInsets.all(8),
-                  itemBuilder: (context, index) {
-                    if (index >= products.length) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: CircularProgressIndicator(),
+                child: Column(
+                  children: [
+                    // Show pagination error banner
+                    if (paginationError != null)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        color: Colors.red.shade100,
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline, color: Colors.red),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                paginationError,
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                context.read<ProductBloc>().add(
+                                  const LoadMoreProducts(),
+                                );
+                              },
+                              child: const Text('Retry'),
+                            ),
+                          ],
                         ),
-                      );
-                    }
+                      ),
+                    Expanded(
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        itemCount: hasReachedMax
+                            ? products.length
+                            : products.length + 1,
+                        padding: const EdgeInsets.all(8),
+                        itemBuilder: (context, index) {
+                          if (index >= products.length) {
+                            return const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
+                          }
 
-                    final product = products[index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.all(12),
-                        leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: CachedNetworkImage(
-                            imageUrl: product.thumbnail,
-                            width: 60,
-                            height: 60,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) => Container(
-                              width: 60,
-                              height: 60,
-                              color: Colors.grey[300],
-                              child: const Center(
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                          final product = products[index];
+                          return Card(
+                            margin: const EdgeInsets.symmetric(
+                              vertical: 8,
+                              horizontal: 4,
+                            ),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.all(12),
+                              leading: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: CachedNetworkImage(
+                                  imageUrl: product.thumbnail,
+                                  width: 60,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Container(
+                                    width: 60,
+                                    height: 60,
+                                    color: Colors.grey[300],
+                                    child: const Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      Container(
+                                        width: 60,
+                                        height: 60,
+                                        color: Colors.grey[300],
+                                        child: const Icon(Icons.error),
+                                      ),
+                                ),
                               ),
-                            ),
-                            errorWidget: (context, url, error) => Container(
-                              width: 60,
-                              height: 60,
-                              color: Colors.grey[300],
-                              child: const Icon(Icons.error),
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          product.title,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(
-                            '\$${product.price.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ProductDetailPage(
-                                productId: product.id,
+                              title: Text(
+                                product.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Text(
+                                  '\$${product.price.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ProductDetailPage(
+                                      productId: product.id,
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           );
                         },
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
               );
             }

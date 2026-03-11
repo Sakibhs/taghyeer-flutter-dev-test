@@ -43,13 +43,27 @@ class PostLoadingMore extends PostState {
   final List<Post> posts;
   final int currentSkip;
 
-  const PostLoadingMore({
-    required this.posts,
-    required this.currentSkip,
-  });
+  const PostLoadingMore({required this.posts, required this.currentSkip});
 
   @override
   List<Object> get props => [posts, currentSkip];
+}
+
+class PostPaginationError extends PostState {
+  final List<Post> posts;
+  final bool hasReachedMax;
+  final int currentSkip;
+  final String errorMessage;
+
+  const PostPaginationError({
+    required this.posts,
+    required this.hasReachedMax,
+    required this.currentSkip,
+    required this.errorMessage,
+  });
+
+  @override
+  List<Object> get props => [posts, hasReachedMax, currentSkip, errorMessage];
 }
 
 class PostError extends PostState {

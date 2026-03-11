@@ -43,13 +43,32 @@ class ProductLoadingMore extends ProductState {
   final List<Product> products;
   final int currentSkip;
 
-  const ProductLoadingMore({
-    required this.products,
-    required this.currentSkip,
-  });
+  const ProductLoadingMore({required this.products, required this.currentSkip});
 
   @override
   List<Object> get props => [products, currentSkip];
+}
+
+class ProductPaginationError extends ProductState {
+  final List<Product> products;
+  final bool hasReachedMax;
+  final int currentSkip;
+  final String errorMessage;
+
+  const ProductPaginationError({
+    required this.products,
+    required this.hasReachedMax,
+    required this.currentSkip,
+    required this.errorMessage,
+  });
+
+  @override
+  List<Object> get props => [
+    products,
+    hasReachedMax,
+    currentSkip,
+    errorMessage,
+  ];
 }
 
 class ProductError extends ProductState {
