@@ -38,7 +38,7 @@ class PostRemoteDataSourceImpl implements PostRemoteDataSource {
           e.type == DioExceptionType.receiveTimeout) {
         throw ServerException('Server timeout');
       } else if (e.type == DioExceptionType.connectionError) {
-        throw NetworkException('No internet connection');
+        throw NetworkException('No internet connection');//hello
       } else {
         throw ServerException('Failed to load posts');
       }
